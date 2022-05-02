@@ -64,7 +64,7 @@ import time
 import sys
 from scipy.sparse import coo_matrix
 from scipy.sparse.linalg import inv, spsolve
-from scipy.linalg import solve
+from scipy.linalg import solve, det
 #処理時間計測
 start_time = time.time()
 lap_time = time.time()
@@ -357,9 +357,29 @@ lap_time = time.time()
 
 
 #配列の初期化
-Bmat   = np.zeros((3,6,num_eleme), dtype=np.float64) #Bマトリックス（形状関数の偏微分）
-Ae     = np.zeros((num_eleme), dtype=np.float64) #要素面積
-e_node = np.empty((3,2), dtype=np.float64) #不明　ある三角形elementを構成する3接点のxy座標
+#ξ:xi η:eta
+Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #わからない。
+Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持つ行列（xi,etaにはガウスの積分点を代入）
+det       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン
+gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点
+polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標
+Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列
+Jacobiinv = np.zeros((2,2), dtype=np.float64) #ヤコビ行列の逆行列
+dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列
+e_node    = np.zeros((4,2), dtype=np.float64) #ある四角形elementを構成する4接点のxy座標　#e_pointから戻した。
+
+
+#ガウスの積分点　わからない
+gauss = np.array([[-1/np.sqrt(3), -1/np.sqrt(3)],
+                  [ 1/np.sqrt(3), -1/np.sqrt(3)],
+                  [ 1/np.sqrt(3),  1/np.sqrt(3)],
+                  [-1/np.sqrt(3),  1/np.sqrt(3)]])
+
+polar = np.array([[-1, -1],
+                  [ 1, -1],
+                  [ 1,  1],
+                  [-1,  1]])
+
 
 
 
@@ -374,30 +394,50 @@ e_node = np.empty((3,2), dtype=np.float64) #不明　ある三角形elementを�
 #配列0始まりに変更
 #eleme[i,j]は接点番号であり、pythonにおける配列位置にするためには-1する必要あり
 for i in range(num_eleme):
-    for j in range(3):
+    for j in range(4):
         e_node[j,0] = node[eleme[i,j]-1,0]
         e_node[j,1] = node[eleme[i,j]-1,1]
-
-    #P.102 式(5.19)
-    Ae[i] = 0.5 * ((e_node[0,0] * (e_node[1,1] - e_node[2,1])) + (e_node[1,0] * (e_node[2,1] - e_node[0,1]))  + (e_node[2,0] * (e_node[0,1] - e_node[1,1])))
-
-
-    #P.129 式(5.77)
-    #配列0始まりに変更
-    Bmat[0,0,i] = (1 / (2 * Ae[i])) * (e_node[1,1] - e_node[2,1])
-    Bmat[0,2,i] = (1 / (2 * Ae[i])) * (e_node[2,1] - e_node[0,1])
-    Bmat[0,4,i] = (1 / (2 * Ae[i])) * (e_node[0,1] - e_node[1,1])
     
-    Bmat[1,1,i] = (1 / (2 * Ae[i])) * (e_node[2,0] - e_node[1,0])
-    Bmat[1,3,i] = (1 / (2 * Ae[i])) * (e_node[0,0] - e_node[2,0])
-    Bmat[1,5,i] = (1 / (2 * Ae[i])) * (e_node[1,0] - e_node[0,0])
-    
-    Bmat[2,0,i] = (1 / (2 * Ae[i])) * (e_node[2,0] - e_node[1,0])
-    Bmat[2,1,i] = (1 / (2 * Ae[i])) * (e_node[1,1] - e_node[2,1])
-    Bmat[2,2,i] = (1 / (2 * Ae[i])) * (e_node[0,0] - e_node[2,0])
-    Bmat[2,3,i] = (1 / (2 * Ae[i])) * (e_node[2,1] - e_node[0,1])
-    Bmat[2,4,i] = (1 / (2 * Ae[i])) * (e_node[1,0] - e_node[0,0])
-    Bmat[2,5,i] = (1 / (2 * Ae[i])) * (e_node[0,1] - e_node[1,1])
+    #結合できそう    
+    for j in range(4): #なんのjかわからない
+        for k in range(4):
+            #pythonは0スタート
+            Hmat[0,k] = polar[k,0] * (1 + polar[k,1] * gauss[j,1]) * 0.25
+            Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss[j,0]) * 0.25
+        
+        
+        #可読性最悪
+        for k in range(2):
+            for l in range(2):
+                for m in range(4):
+                    Jacobi += Hmat[k,m] * e_node[m,l]
+        
+        
+        #p220(B.25)
+        det[i,j] = np.linalg.det(Jacobi)
+        
+        #初歩的な線形代数の逆行列　ライブラリでやるか？        
+        Jacobiinv[0,0] = Jacobi[1,1] / det[i,j]
+        Jacobiinv[0,1] = -1 * Jacobi[0,1] / det[i,j]
+        Jacobiinv[1,0] = -1 * Jacobi[1,0] / det[i,j]
+        Jacobiinv[1,1] = Jacobi[0,0] / det[i,j]
+        
+        
+        for k in range(2):
+            for l in range(4):
+                for m in range(2):
+                    dNdxy[k,l] += Jacobiinv[k,m] * Hmat[m,l]
+        
+        #fortranは1始まり、pythonは0始まり
+        #p222
+        for k in range(4):
+            Bmat[0,2*k,i,j] = dNdxy[0,k]
+            Bmat[1,2*k+1,i,j] = dNdxy[1,k]
+            Bmat[2,2*k,i,j] = dNdxy[1,k]
+            Bmat[2,2*k+1,i,j] = dNdxy[0,k]
+        
+        
+
 
 
 #----------------------------------

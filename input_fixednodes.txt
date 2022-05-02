@@ -1,0 +1,17 @@
+    1    1    1    0.0d0
+    2    1    2    0.0d0
+    3    2    1    0.0d0
+    4    2    2    0.0d0
+    5    3    1    0.0d0
+    6    3    2    0.0d0
+    7    4    1    0.0d0
+    8    4    2    0.0d0
+    9    5    1    0.0d0
+   10    5    2    0.0d0
+
+
+===========================
+[ID] [Node number] [Fixed direction] [Value]
+
+"[Fixed direction]: 1 = x-direction, 2 = y-direction"
+

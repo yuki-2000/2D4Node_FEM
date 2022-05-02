@@ -1,0 +1,12 @@
+    1    201    2    -1.0d3
+    2    202    2    -1.0d3
+    3    203    2    -1.0d3
+    4    204    2    -1.0d3
+    5    205    2    -1.0d3
+
+
+===========================
+[ID] [Node number] [Load direction] [Value]
+
+"[Load direction]: 1 = x-direction, 2 = y-direction"
+

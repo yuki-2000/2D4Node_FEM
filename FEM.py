@@ -88,11 +88,11 @@ with open('input_AnalysisConditions.txt') as f:
     l = f.readlines()
     num_node  = int(l[0].split('!')[0]) #モデル節点数
     num_eleme = int(l[1].split('!')[0]) #モデル要素数
-    num_material = int(l[0].split('!')[0])#材料種類数
+    num_material = int(l[2].split('!')[0])#材料種類数
     num_fix   = int(l[3].split('!')[0]) #拘束点数
     num_force = int(l[4].split('!')[0]) #荷重点数
     amp       = float(l[5].split('!')[0].replace('d','e')) #変形図倍率
-    thickness = float(l[2].split('!')[0].replace('d','e')) #モデル厚さ
+    thickness = float(l[6].split('!')[0].replace('d','e')) #モデル厚さ
 
 
 
@@ -190,34 +190,130 @@ lap_time = time.time()
 #makeDmat (Dmat)
 
 #配列の初期化
-Dmat = np.zeros((3,3),dtype=np.float64) #弾性剛性マトリックス
+Dmat = np.zeros((3,3,num_material),dtype=np.float64) #弾性剛性マトリックス
+
+#最悪　めちゃくちゃわかりにくい
+#ちゃんとしたデータセット形式のinput作れ
+
+#readで読んでいるから
+line_num = 0
   
 with open('input_matinfo.txt') as f:
     l = f.readlines()
-    Young = float(l[0].split('!')[0].replace('d','e'))
-    Poisson = float(l[1].split('!')[0].replace('d','e'))
+    
+    condition = int(l[0].split('!')[0]) #plane stress status: 1, plane strain status: 2
+    line_num += 1
+    if condition == 1:
+        print('PLANE STRESS CONDITION')
+    elif condition == 2:
+        print('PLANE STRAIN CONDITION')
+    else:
+        print('CONDITION IS NOT APPROPRIATE.')
+        
+        
+        
+    for k in range(num_material):
+        num = int(l[line_num].split('!')[0]) #MATERIAL ID  変数名変えるべき
+        line_num += 1
+        print('MATERIAL ID :', num)
+        if num != k+1:
+            print('MATERIAL ID IS NOT APPROPRIATE.')
+            
+        
+        mat_type = int(l[line_num].split('!')[0]) #Isotropic Material: 1, Transversely Isotropic Material: 2
+        line_num += 1
+        
+        if mat_type == 1: #Isotropic Material 等方材料
+            print('MATERIAL TYPE IS ISOTROPIC MATERIAL.')
+            
+            Young1 = float(l[line_num].split('!')[0].replace('d','e'))
+            line_num += 1
+            Poisson1 = float(l[line_num].split('!')[0].replace('d','e'))
+            line_num += 1
 
-
-print('YOUNG''S MODULUS [Pa] :', Young)
-print('POISSON''S RATIO :', Poisson)  
-
-
-#排列がpythonでは0始まりなので[0,1]は1行2列、fortranでは[1,2]とかく。
-
-#平面応力状態 P.121 式(5.53)
-Dmat[0,0] = Young / (1 - (Poisson ** 2))
-Dmat[0,1] = Young / (1 - (Poisson ** 2)) * Poisson
-Dmat[1,0] = Young / (1 - (Poisson ** 2)) * Poisson
-Dmat[1,1] = Young / (1 - (Poisson ** 2))
-Dmat[2,2] = Young / (1 - (Poisson ** 2)) * (1- Poisson) / 2
-
-#平面ひずみ状態 P.122 式(5.54)
-#Dmat[0,0] = Young * (1 - Poisson) / (1 - 2 * Poisson) / (1 + Poisson)
-#Dmat[0,1] = Young / (1 - 2 * Poisson) / (1 + Poisson) * Poisson
-#Dmat[1,0] = Young / (1 - 2 * Poisson) / (1 + Poisson) * Poisson
-#Dmat[1,1] = Young * (1 - Poisson) / (1 - 2 * Poisson) / (1 + Poisson)
-#Dmat[2,2] = Young / (1 + Poisson) / 2
-
+            print('YOUNG''S MODULUS [MPa] :', Young1)
+            print('POISSON''S RATIO :', Poisson1)  
+            
+            Young1 *= 10**6 #MPaからPaに変更
+            
+            
+            #配列がpythonでは0始まりなので[0,1]は1行2列、fortranでは[1,2]とかく。
+            if condition == 1: #平面応力
+                Dmat[0,0,k] = Young1 / (1 - (Poisson1 ** 2))
+                Dmat[0,1,k] = Young1 / (1 - (Poisson1 ** 2)) * Poisson1
+                Dmat[1,0,k] = Young1 / (1 - (Poisson1 ** 2)) * Poisson1
+                Dmat[1,1,k] = Young1 / (1 - (Poisson1 ** 2))
+                Dmat[2,2,k] = Young1 / (1 - (Poisson1 ** 2)) * (1- Poisson1) / 2
+            elif condition == 2: #平面ひずみ
+                Dmat[0,0,k] = Young1 * (1 - Poisson1) / (1 - 2 * Poisson1) / (1 + Poisson1)
+                Dmat[0,1,k] = Young1 / (1 - 2 * Poisson1) / (1 + Poisson1) * Poisson1
+                Dmat[1,0,k] = Young1 / (1 - 2 * Poisson1) / (1 + Poisson1) * Poisson1
+                Dmat[1,1,k] = Young1 * (1 - Poisson1) / (1 - 2 * Poisson1) / (1 + Poisson1)
+                Dmat[2,2,k] = Young1 / (1 + Poisson1) / 2
+        
+        
+        elif mat_type == 2: #Transeversely Isotropic Material
+            print('MATERIAL TYPE IS TRANSEVERSELY ISOTROPIC MATERIAL.')
+            
+            if condition == 1:
+                Young1 = float(l[line_num].split('!')[0].replace('d','e')) #LL
+                line_num += 1
+                Young2= float(l[line_num].split('!')[0].replace('d','e')) #TT
+                line_num += 1
+                Poisson1= float(l[line_num].split('!')[0].replace('d','e')) #LT
+                line_num += 1
+                Poisson2= float(l[line_num].split('!')[0].replace('d','e')) #TL
+                line_num += 1
+                GL= float(l[line_num].split('!')[0].replace('d','e')) #LT
+                line_num += 1
+                
+                print('YOUNG''S MODULUS (LL) [MPa] :', Young1)
+                print('YOUNG''S MODULUS (TT) [MPa] :', Young2)
+                print('POISSON''S RATIO (LT) :', Poisson1)
+                print('POISSON''S RATIO (TL) :', Poisson2)
+                print('SHEAR MODULUS (LT) [MPa] :', GL)
+                
+                Young1 *= 10**6
+                Young2 *= 10**6
+                GL     *= 10**6
+                
+                #配列がpythonでは0始まりなので[0,1]は1行2列、fortranでは[1,2]とかく。
+                Dmat[0,0,k] = Young1 / (1 - Poisson1 * Poisson2)
+                Dmat[0,1,k] = Young2 * Poisson1 / (1 - Poisson1 * Poisson2)
+                Dmat[1,0,k] = Young2 * Poisson1 / (1 - Poisson1 * Poisson2)
+                Dmat[1,1,k] = Young2 * (1 - Poisson1 * Poisson2)
+                Dmat[2,2,k] = GL
+                
+            
+            elif condition == 2:
+                Young2= float(l[line_num].split('!')[0].replace('d','e')) #TT
+                line_num += 1
+                Poisson1= float(l[line_num].split('!')[0].replace('d','e')) #LT
+                line_num += 1
+                Poisson2= float(l[line_num].split('!')[0].replace('d','e')) #TL
+                line_num += 1
+                Poisson3= float(l[line_num].split('!')[0].replace('d','e')) #TT
+                line_num += 1
+                GL= float(l[line_num].split('!')[0].replace('d','e')) #LT
+                line_num += 1
+                
+                print('YOUNG''S MODULUS (TT) [MPa] :', Young2)
+                print('POISSON''S RATIO (LT) :', Poisson1)
+                print('POISSON''S RATIO (TL) :', Poisson2)
+                print('POISSON''S RATIO (TT) :', Poisson3)
+                print('SHEAR MODULUS (LT) [MPa] :', GL)
+                
+                Young2 *= 10**6
+                GL     *= 10**6
+                
+                #配列がpythonでは0始まりなので[0,1]は1行2列、fortranでは[1,2]とかく。
+                Dmat[0,0,k] = (1 - Poisson1 * Poisson2) * Young2 / (1 + Poisson3) / (1 - Poisson3 - 2 * Poisson1 * Poisson2)
+                Dmat[0,1,k] = (Poisson3 + Poisson1 * Poisson2) * Young2 / (1 + Poisson3) / (1 - Poisson3 - 2 * Poisson1 * Poisson2)
+                Dmat[1,0,k] = (Poisson3 + Poisson1 * Poisson2) * Young2 / (1 + Poisson3) / (1 - Poisson3 - 2 * Poisson1 * Poisson2)
+                Dmat[1,1,k] = (1 - Poisson1 * Poisson2) * Young2 / (1 + Poisson3) / (1 - Poisson3 - 2 * Poisson1 * Poisson2)
+                Dmat[2,2,k] = GL
+                
+                
 
 
 

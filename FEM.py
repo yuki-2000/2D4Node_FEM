@@ -825,19 +825,35 @@ lap_time = time.time()
 
 # distribution (NUM_NODE, NUM_ELEME, eleme, Bmat, Dmat, Umat)
 
+#念のため残しておく。
+strain = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のひずみ(εx,εy,γxy)
+stress = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のの応力(σx,σy,τxy)
 
-strain = np.zeros((3, num_eleme), dtype=np.float64)  #各三角形のひずみ(εx,εy,γxy)
-stress = np.zeros((3, num_eleme), dtype=np.float64)  #各三角形のの応力(σx,σy,τxy)
-e_Umat = np.empty(6, dtype=np.float64)               #ある三角形要素の変位
+GAUSSstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64) #Bの謎のjに対応する4
+GAUSSstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
+NODALstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
+NODALstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
+
+
+e_Umat = np.empty(8, dtype=np.float64)               #ある四角形要素の変位
 
 
 for i in range(num_eleme):
-    for j in range(3):
+    for j in range(4): #四角形の4
         e_Umat[2*j]   = Umat[2*(eleme[i,j]-1)]     #三角形要素のx変位
         e_Umat[2*j+1] = Umat[2*(eleme[i,j]-1)+1]   #三角形要素のy変位
+        
+    for j in range(4): #Bの謎のjに対応する4
+        GAUSSstrain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
+        GAUSSstress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
+        
+        strain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
+        stress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
 
-    strain[:,i] = Bmat[:,:,i] @ e_Umat
-    stress[:,i] = Dmat @ strain[:,i]
+
+
+#nodalわからない。
+
 
 
 print('CALCULATE DISTRIBUTIONS')

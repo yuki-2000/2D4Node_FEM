@@ -83,15 +83,16 @@ lap_time = time.time()
 #fortranでは単精度では1.23e4、倍精度では1.23d4とかくが、pythonはeのみ対応。よって置換
 #https://docs.python.org/ja/3/library/functions.html#float
 
-#with open('input_AnalysisConditions.txt') as f:
-with open('benchmark_input_AnalysisConditions.txt') as f:
+with open('input_AnalysisConditions.txt') as f:
+#with open('benchmark_input_AnalysisConditions.txt') as f:
     l = f.readlines()
     num_node  = int(l[0].split('!')[0]) #モデル節点数
     num_eleme = int(l[1].split('!')[0]) #モデル要素数
-    thickness = float(l[2].split('!')[0].replace('d','e')) #モデル厚さ
+    num_material = int(l[0].split('!')[0])#材料種類数
     num_fix   = int(l[3].split('!')[0]) #拘束点数
     num_force = int(l[4].split('!')[0]) #荷重点数
     amp       = float(l[5].split('!')[0].replace('d','e')) #変形図倍率
+    thickness = float(l[2].split('!')[0].replace('d','e')) #モデル厚さ
 
 
 

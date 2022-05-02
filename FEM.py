@@ -216,6 +216,7 @@ with open('input_matinfo.txt') as f:
         num = int(l[line_num].split('!')[0]) #MATERIAL ID  変数名変えるべき
         line_num += 1
         print('MATERIAL ID :', num)
+        #MATERIAL ID は1始まりだが、kは0始まりなので合わせている。
         if num != k+1:
             print('MATERIAL ID IS NOT APPROPRIATE.')
             
@@ -458,14 +459,6 @@ lap_time = time.time()
 
 
 
-
-
-
-
-
-
-
-
 # makeKmat (NUM_NODE, NUM_ELEME, eleme, Bmat, Dmat, Kmat, Ae, THICKNESS)
 
 
@@ -473,25 +466,29 @@ lap_time = time.time()
 
 #配列の初期化
 Kmat   = np.zeros((2*num_node,2*num_node), dtype=np.float64) #全体剛性マトリックス
-e_Kmat = np.zeros((6,6), dtype=np.float64)  #要素剛性マトリックス
+e_Kmat = np.zeros((8,8), dtype=np.float64)  #要素剛性マトリックス
 
 #定数になってしまうのでTをtに変更
 #BtD    = np.zeros((6,3), dtype=np.float64)  #fortranにはあったが、確保する必要なし
 #BtDB   = np.zeros((6,6), dtype=np.float64)  #fortranにはあったが、確保する必要なし
 
 for i in range(num_eleme):
-    #要素剛性マトリックスの構築 P.135 式(5.94)
-    #BtD = Bmat[:,:,i].T @ Dmat
-    #BtDB = BtD @ Bmat[:,:,i]
-    #e_Kmat = Ae[i] * thickness * BtDB 
-    #一発で、メモリのほんのちょっとの節約
-    e_Kmat = Ae[i] * thickness * Bmat[:,:,i].T @ Dmat @ Bmat[:,:,i]
+    for j in range(4): #jが何かわからない    
+    
+        #要素剛性マトリックスの構築 P.135 式(5.94)
+        #一発で、メモリのほんのちょっとの節約
+        #material[i]は、i要素の素材番号1始まりだが、Dmatの格納場所は0なので注意
+        e_Kmat = det[i,j] * thickness * Bmat[:,:,i,j].T @ Dmat[:,:,material[i]-1] @ Bmat[:,:,i,j]
+    
+    
+    
+    
     
     #全体剛性マトリックスへの組込み P.137 式(5.97)
 
     #ここもっと行列計算したい
-    for j in range(3):
-        for k in range(3):
+    for j in range(4):
+        for k in range(4):
 
             #eleme[i,j]は接点番号であり、pythonにおける配列位置にするためには-1する必要があると思ったが、
             #Kmatの式の作り方からやめておく

@@ -121,28 +121,36 @@ with open('input_AnalysisConditions.txt') as f:
 #node = np.zeros((num_node,2),dtype=np.float64)
 #emptyのほうがより高速だが、初期化されない
 node      = np.empty((num_node,2), dtype=np.float64) #節点座標
-eleme     = np.empty((num_eleme,3),dtype=np.int32) #各要素のコネクティビティ #つまりある三角形elementを構成する接点node番号(1スタートに注意)
+eleme     = np.empty((num_eleme,4),dtype=np.int32) #各要素のコネクティビティ #つまりある四角形elementを構成する接点node番号(1スタートに注意)
+material  = np.empty((num_eleme),dtype=np.int32) #各要素の素材番号 (元と違うので注意)
 fix_pnt   = np.empty((num_fix,2),  dtype=np.int32) #変位境界条件
 force_pnt = np.empty((num_force,2),dtype=np.int32) #力学的境界条件 #接点番号と向きの配列
 fix       = np.empty((num_fix),    dtype=np.float64) #変位境界条件の値
 force     = np.empty((num_force),  dtype=np.float64) #力学的境界条件の値
 
 
-#dを使った指数表現でない？
-#with open('input_point.txt') as f:
-with open('benchmark_input_point.txt') as f:
+#dを使った指数表現に対応、スペース区切りに変更
+with open('input_point.txt') as f:
+#with open('benchmark_input_point.txt') as f:
     l = f.readlines()
     for i, input_point in enumerate(l):
-        node[i] = input_point.split(',')[1:3]
+        node[i,0] = input_point.split()[1].replace('d','e')
+        node[i,1] = input_point.split()[2].replace('d','e')
         
-
-#with open('input_eleme.txt') as f:
-with open('benchmark_input_eleme.txt') as f:
+#スペース区切りに変更
+with open('input_eleme.txt') as f:
+#with open('benchmark_input_eleme.txt') as f:
     l = f.readlines()
     for i, input_eleme in enumerate(l):
-        eleme[i] = input_eleme.split(',')[1:4]
+        eleme[i] = input_eleme.split()[1:5]
 
-         
+#追加   
+with open('input_material.txt') as f:
+    l = f.readlines()
+    for i, input_material in enumerate(l):
+        material[i] = input_material.split()[1]
+
+      
 #行の最後に文章があるので行番号を厳密に指定        
 with open('input_fixednodes.txt') as f:
     l = f.readlines()

@@ -359,11 +359,11 @@ lap_time = time.time()
 
 #配列の初期化
 #ξ:xi η:eta
-Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #わからない。
+Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #ただしすでにガウス積分点代入済み
 Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持つ行列（xi,etaにはガウスの積分点を代入）
 det_Jacobi       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン（ヤコビ行列の行列式)
-gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点
-polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標
+gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点(polarと同じように左下から反時計)
+polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標　左下から反時計
 Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列 (ガウスの積分点代入済み)
 Jacobiinv = np.zeros((2,2), dtype=np.float64) #ヤコビ行列の逆行列
 dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列 行がxy列が形状関数N Hmat、Jacobiinvともにガウスの積分点代入済みのため、これもガウスの積分点代入済み
@@ -395,7 +395,7 @@ polar = np.array([[-1, -1],
 #配列0始まりに変更
 #eleme[i,j]は接点番号であり、pythonにおける配列位置にするためには-1する必要あり
 for i in range(num_eleme):
-    for j in range(4):
+    for j in range(4): #節点の4
         e_node[j,0] = node[eleme[i,j]-1,0]
         e_node[j,1] = node[eleme[i,j]-1,1]
     
@@ -439,11 +439,16 @@ for i in range(num_eleme):
         
         #fortranは1始まり、pythonは0始まり
         #p222
-        for k in range(4):
-            Bmat[0,2*k,i,j] = dNdxy[0,k]
-            Bmat[1,2*k+1,i,j] = dNdxy[1,k]
-            Bmat[2,2*k,i,j] = dNdxy[1,k]
-            Bmat[2,2*k+1,i,j] = dNdxy[0,k]
+        #for k in range(4):
+            #Bmat[0,2*k,i,j] = dNdxy[0,k]
+            #Bmat[1,2*k+1,i,j] = dNdxy[1,k]
+            #Bmat[2,2*k,i,j] = dNdxy[1,k]
+            #Bmat[2,2*k+1,i,j] = dNdxy[0,k]
+            
+        Bmat[0,::2, i,j] = dNdxy[0,:]
+        Bmat[1,1::2,i,j] = dNdxy[1,:]
+        Bmat[2,::2, i,j] = dNdxy[1,:]
+        Bmat[2,1::2,i,j] = dNdxy[0,:]
         
         
 

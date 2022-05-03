@@ -361,7 +361,7 @@ lap_time = time.time()
 #ξ:xi η:eta
 Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #わからない。
 Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持つ行列（xi,etaにはガウスの積分点を代入）
-det       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン
+det_Jacobi       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン（ヤコビ行列の行列式)
 gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点
 polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標
 Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列 (ガウスの積分点代入済み)
@@ -418,13 +418,13 @@ for i in range(num_eleme):
         
         
         #p220(B.25)
-        det[i,j] = np.linalg.det(Jacobi)
+        det_Jacobi[i,j] = np.linalg.det(Jacobi)
         
         #初歩的な線形代数の逆行列　ライブラリでやるか？        
-        Jacobiinv[0,0] = Jacobi[1,1] / det[i,j]
-        Jacobiinv[0,1] = -1 * Jacobi[0,1] / det[i,j]
-        Jacobiinv[1,0] = -1 * Jacobi[1,0] / det[i,j]
-        Jacobiinv[1,1] = Jacobi[0,0] / det[i,j]
+        Jacobiinv[0,0] = Jacobi[1,1] / det_Jacobi[i,j]
+        Jacobiinv[0,1] = -1 * Jacobi[0,1] / det_Jacobi[i,j]
+        Jacobiinv[1,0] = -1 * Jacobi[1,0] / det_Jacobi[i,j]
+        Jacobiinv[1,1] = Jacobi[0,0] / det_Jacobi[i,j]
         
         
         for k in range(2):
@@ -481,7 +481,7 @@ for i in range(num_eleme):
         #要素剛性マトリックスの構築 P.135 式(5.94)
         #一発で、メモリのほんのちょっとの節約
         #material[i]は、i要素の素材番号1始まりだが、Dmatの格納場所は0なので注意
-        e_Kmat = det[i,j] * thickness * Bmat[:,:,i,j].T @ Dmat[:,:,material[i]-1] @ Bmat[:,:,i,j]
+        e_Kmat = det_Jacobi[i,j] * thickness * Bmat[:,:,i,j].T @ Dmat[:,:,material[i]-1] @ Bmat[:,:,i,j]
     
     
     

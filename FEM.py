@@ -892,7 +892,7 @@ import matplotlib.collections
 import numpy as np
 
 
-def showMeshPlot(nodes, elements, values):
+def showMeshPlot(nodes, elements, values, title):
 
     y = nodes[:,0]
     z = nodes[:,1]
@@ -912,17 +912,15 @@ def showMeshPlot(nodes, elements, values):
     ax.set_aspect('equal')
 
     pc = quatplot(y,z, np.asarray(elements), values, ax=ax, 
-             edgecolor="crimson", cmap="rainbow")
+             edgecolor="black", cmap="rainbow")
     fig.colorbar(pc, ax=ax)        
-    ax.plot(y,z, marker="o", ls="", color="crimson")
+    ax.plot(y,z, marker="o", ls="", color="black")
 
-    ax.set(title='This is the plot for: quad', xlabel='Y Axis', ylabel='Z Axis')
+    ax.set(title=title, xlabel='Y Axis', ylabel='Z Axis')
 
     plt.show()
+    #fig.savefig(f'result_{title}.png')
 
-
-
-showMeshPlot(nodes=node, elements=eleme-1, values=strain[:,0,0])
 
 
 
@@ -932,26 +930,12 @@ showMeshPlot(nodes=node, elements=eleme-1, values=strain[:,0,0])
 #可視化
 #https://qiita.com/itotomball/items/e63039d186fa1f564513
 
-"""
-result_list = (('mesh', np.zeros(num_eleme)),('strain_x', strain[:,0,0]),('strain_y', strain[1]),('strain_xy', strain[2]),('stress_x', stress[0]),('stress_y', stress[1]),('stress_xy', stress[2]))
+
+result_list = (('mesh', np.zeros(num_eleme)),('strain_x', strain[:,0,0]),('strain_y', strain[:,0,1]),('strain_xy', strain[:,0,2]),('stress_x', stress[:,0,0]),('stress_y', stress[:,0,1]),('stress_xy', stress[:,0,2]))
 for title, C in result_list:
 
-
     #接点番号は1から、pythonの行番号は0から始まるので修正
-    triangles = eleme -1
-    fig = plt.figure(figsize=(8.0,3.0))
-    ax = fig.add_subplot()
-
-    fig.suptitle(title)
-    #cmapについてはこちら
-    #https://beiznotes.org/matplot-cmap-list/
-    tpc = ax.tripcolor(disp[:,0], disp[:,1], triangles, C, edgecolors='black', cmap='jet')
-    # カラーバーを表示
-    fig.colorbar(tpc)
-    # アスペクト比を1対1に, レイアウトを調整
-    ax.set_aspect('equal')
-    plt.show()
-    #fig.savefig(f'result_{title}.png')
+    showMeshPlot(nodes=node, elements=eleme-1, values=strain[:,0,0], title = title)
     
 
 for matrix_name in["Kmat", "K11", "K12", "K22"] :
@@ -965,7 +949,7 @@ for matrix_name in["Kmat", "K11", "K12", "K22"] :
     fig.tight_layout()
     plt.show()
     #fig.savefig('Kmat.png')
-"""
+
     
     
 #メモリ確認

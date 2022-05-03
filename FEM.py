@@ -366,7 +366,7 @@ gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点
 polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標
 Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列 (ガウスの積分点代入済み)
 Jacobiinv = np.zeros((2,2), dtype=np.float64) #ヤコビ行列の逆行列
-dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列
+dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列 行がxy列が形状関数N Hmat、Jacobiinvともにガウスの積分点代入済みのため、これもガウスの積分点代入済み
 e_node    = np.zeros((4,2), dtype=np.float64) #ある四角形elementを構成する4接点のxy座標　#e_pointから戻した。
 
 
@@ -420,17 +420,22 @@ for i in range(num_eleme):
         #p220(B.25)
         det_Jacobi[i,j] = np.linalg.det(Jacobi)
         
-        #初歩的な線形代数の逆行列　ライブラリでやるか？        
-        Jacobiinv[0,0] = Jacobi[1,1] / det_Jacobi[i,j]
-        Jacobiinv[0,1] = -1 * Jacobi[0,1] / det_Jacobi[i,j]
-        Jacobiinv[1,0] = -1 * Jacobi[1,0] / det_Jacobi[i,j]
-        Jacobiinv[1,1] = Jacobi[0,0] / det_Jacobi[i,j]
+        #初歩的な線形代数の逆行列　ライブラリでやるか？ 
+        #p220 B.25
+        #Jacobiinv[0,0] = Jacobi[1,1] / det_Jacobi[i,j]
+        #Jacobiinv[0,1] = -1 * Jacobi[0,1] / det_Jacobi[i,j]
+        #Jacobiinv[1,0] = -1 * Jacobi[1,0] / det_Jacobi[i,j]
+        #Jacobiinv[1,1] = Jacobi[0,0] / det_Jacobi[i,j]
+        
+        Jacobiinv = np.linalg.inv(Jacobi)
         
         
-        for k in range(2):
-            for l in range(4):
-                for m in range(2):
-                    dNdxy[k,l] += Jacobiinv[k,m] * Hmat[m,l]
+        #for k in range(2):
+            #for l in range(4):
+                #for m in range(2):
+                    #dNdxy[k,l] += Jacobiinv[k,m] * Hmat[m,l]
+        #p222らへん            
+        dNdxy = Jacobiinv @ Hmat
         
         #fortranは1始まり、pythonは0始まり
         #p222

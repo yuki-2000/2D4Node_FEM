@@ -364,7 +364,7 @@ Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持
 det       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン
 gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点
 polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標
-Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列
+Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列 (ガウスの積分点代入済み)
 Jacobiinv = np.zeros((2,2), dtype=np.float64) #ヤコビ行列の逆行列
 dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列
 e_node    = np.zeros((4,2), dtype=np.float64) #ある四角形elementを構成する4接点のxy座標　#e_pointから戻した。
@@ -401,17 +401,20 @@ for i in range(num_eleme):
     
     #結合できそう    
     for j in range(4): #なんのjかわからない
-        for k in range(4):
+        for k in range(4): #各接点の4
             #pythonは0スタート
             Hmat[0,k] = polar[k,0] * (1 + polar[k,1] * gauss[j,1]) * 0.25
             Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss[j,0]) * 0.25
         
         
-        #可読性最悪
-        for k in range(2):
-            for l in range(2):
-                for m in range(4):
-                    Jacobi += Hmat[k,m] * e_node[m,l]
+        #可読性最悪　ではなく、ただの行列積だった。
+        #for k in range(2):
+            #for l in range(2):
+                #for m in range(4):
+                    #Jacobi[k,l] += Hmat[k,m] * e_node[m,l]
+        
+        #p220-221 ただしガウスの積分点代入済み
+        Jacobi = Hmat @ e_node
         
         
         #p220(B.25)
@@ -869,11 +872,58 @@ lap_time = time.time()
 
 
 
+
+
+#https://stackoverflow.com/questions/52202014/how-can-i-plot-2d-fem-results-using-matplotlib
+
+
+import matplotlib.pyplot as plt
+import matplotlib.collections
+import numpy as np
+
+
+def showMeshPlot(nodes, elements, values):
+
+    y = nodes[:,0]
+    z = nodes[:,1]
+
+    def quatplot(y,z, quatrangles, values, ax=None, **kwargs):
+
+        if not ax: ax=plt.gca()
+        yz = np.c_[y,z]
+        verts= yz[quatrangles]
+        pc = matplotlib.collections.PolyCollection(verts, **kwargs)
+        pc.set_array(values)
+        ax.add_collection(pc)
+        ax.autoscale()
+        return pc
+
+    fig, ax = plt.subplots()
+    ax.set_aspect('equal')
+
+    pc = quatplot(y,z, np.asarray(elements), values, ax=ax, 
+             edgecolor="crimson", cmap="rainbow")
+    fig.colorbar(pc, ax=ax)        
+    ax.plot(y,z, marker="o", ls="", color="crimson")
+
+    ax.set(title='This is the plot for: quad', xlabel='Y Axis', ylabel='Z Axis')
+
+    plt.show()
+
+
+
+showMeshPlot(nodes=node, elements=eleme-1, values=strain[:,0,0])
+
+
+
+
+
+
 #可視化
 #https://qiita.com/itotomball/items/e63039d186fa1f564513
 
-
-result_list = (('mesh', np.zeros(num_eleme)),('strain_x', strain[0]),('strain_y', strain[1]),('strain_xy', strain[2]),('stress_x', stress[0]),('stress_y', stress[1]),('stress_xy', stress[2]))
+"""
+result_list = (('mesh', np.zeros(num_eleme)),('strain_x', strain[:,0,0]),('strain_y', strain[1]),('strain_xy', strain[2]),('stress_x', stress[0]),('stress_y', stress[1]),('stress_xy', stress[2]))
 for title, C in result_list:
 
 
@@ -905,7 +955,7 @@ for matrix_name in["Kmat", "K11", "K12", "K22"] :
     fig.tight_layout()
     plt.show()
     #fig.savefig('Kmat.png')
-    
+"""
     
     
 #メモリ確認

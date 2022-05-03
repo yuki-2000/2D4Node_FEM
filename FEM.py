@@ -359,22 +359,22 @@ lap_time = time.time()
 
 #配列の初期化
 #ξ:xi η:eta
-Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #ただしすでにガウス積分点代入済み
-Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持つ行列（xi,etaにはガウスの積分点を代入）
+Bmat      = np.zeros((3,8,num_eleme,4), dtype=np.float64) #Bマトリックス（形状関数の偏微分） #ただしすでにガウス積分点代入済み 4はガウスの積分店の個数
+Hmat      = np.zeros((2,4), dtype=np.float64) #dN/d(xi),dN/d(eta)を成分に持つ行列（xi,etaにはガウスの積分点を代入）　あるガウス積分点における値
 det_Jacobi       = np.zeros((num_eleme,4), dtype=np.float64) #ガウスの積分点におけるヤコビアン（ヤコビ行列の行列式)
-gauss     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点(polarと同じように左下から反時計)
+gauss_nodes     = np.zeros((4,2), dtype=np.float64) #ガウスの積分点(polarと同じように左下から反時計)
 polar     = np.zeros((4,2), dtype=np.float64) #要素座標(xi,eta)における節点座標　左下から反時計
 Jacobi    = np.zeros((2,2), dtype=np.float64) #ヤコビ行列 (ガウスの積分点代入済み)
 Jacobiinv = np.zeros((2,2), dtype=np.float64) #ヤコビ行列の逆行列
-dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列 行がxy列が形状関数N Hmat、Jacobiinvともにガウスの積分点代入済みのため、これもガウスの積分点代入済み
+dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行列 行がxy列が形状関数N Hmat、Jacobiinvともにあるガウスの積分点代入済みのため、これもガウスの積分点代入済み
 e_node    = np.zeros((4,2), dtype=np.float64) #ある四角形elementを構成する4接点のxy座標　#e_pointから戻した。
 
 
 #ガウスの積分点　わからない
-gauss = np.array([[-1/np.sqrt(3), -1/np.sqrt(3)],
-                  [ 1/np.sqrt(3), -1/np.sqrt(3)],
-                  [ 1/np.sqrt(3),  1/np.sqrt(3)],
-                  [-1/np.sqrt(3),  1/np.sqrt(3)]])
+gauss_nodes = np.array([[-1/np.sqrt(3), -1/np.sqrt(3)],
+                        [ 1/np.sqrt(3), -1/np.sqrt(3)],
+                        [ 1/np.sqrt(3),  1/np.sqrt(3)],
+                        [-1/np.sqrt(3),  1/np.sqrt(3)]])
 
 polar = np.array([[-1, -1],
                   [ 1, -1],
@@ -399,12 +399,12 @@ for i in range(num_eleme):
         e_node[j,0] = node[eleme[i,j]-1,0]
         e_node[j,1] = node[eleme[i,j]-1,1]
     
-    #結合できそう    
-    for j in range(4): #なんのjかわからない
+   
+    for j in range(len(gauss_nodes)): #各ガウスの積分点を代入した時
         for k in range(4): #各接点の4
             #pythonは0スタート
-            Hmat[0,k] = polar[k,0] * (1 + polar[k,1] * gauss[j,1]) * 0.25
-            Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss[j,0]) * 0.25
+            Hmat[0,k] = polar[k,0] * (1 + polar[k,1] * gauss_nodes[j,1]) * 0.25
+            Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss_nodes[j,0]) * 0.25
         
         
         #可読性最悪　ではなく、ただの行列積だった。
@@ -486,12 +486,13 @@ e_Kmat = np.zeros((8,8), dtype=np.float64)  #要素剛性マトリックス
 #BtDB   = np.zeros((6,6), dtype=np.float64)  #fortranにはあったが、確保する必要なし
 
 for i in range(num_eleme):
-    for j in range(4): #jが何かわからない    
+    for j in range(len(gauss_nodes)): #各ガウスの積分点を代入した時
     
         #要素剛性マトリックスの構築 P.135 式(5.94)
         #一発で、メモリのほんのちょっとの節約
         #material[i]は、i要素の素材番号1始まりだが、Dmatの格納場所は0なので注意
-        e_Kmat = det_Jacobi[i,j] * thickness * Bmat[:,:,i,j].T @ Dmat[:,:,material[i]-1] @ Bmat[:,:,i,j]
+        #ガウスの積分点の個数だけ足されていることに注意
+        e_Kmat += det_Jacobi[i,j] * thickness * Bmat[:,:,i,j].T @ Dmat[:,:,material[i]-1] @ Bmat[:,:,i,j]
     
     
     
@@ -842,7 +843,7 @@ lap_time = time.time()
 strain = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のひずみ(εx,εy,γxy)
 stress = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のの応力(σx,σy,τxy)
 
-GAUSSstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64) #Bの謎のjに対応する4
+GAUSSstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64) #各ガウスの積分点におけるひずみ。四角形では要素内で一定でない。
 GAUSSstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
 NODALstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
 NODALstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
@@ -853,10 +854,10 @@ e_Umat = np.empty(8, dtype=np.float64)               #ある四角形要素の�
 
 for i in range(num_eleme):
     for j in range(4): #四角形の4
-        e_Umat[2*j]   = Umat[2*(eleme[i,j]-1)]     #三角形要素のx変位
-        e_Umat[2*j+1] = Umat[2*(eleme[i,j]-1)+1]   #三角形要素のy変位
+        e_Umat[2*j]   = Umat[2*(eleme[i,j]-1)]     #四角形要素のx変位
+        e_Umat[2*j+1] = Umat[2*(eleme[i,j]-1)+1]   #四角形要素のy変位
         
-    for j in range(4): #Bの謎のjに対応する4
+    for j in range(len(gauss_nodes)): #各ガウスの積分点を代入した時
         GAUSSstrain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
         GAUSSstress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
         

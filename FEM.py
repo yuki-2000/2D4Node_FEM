@@ -850,7 +850,7 @@ GAUSSstrain = np.zeros((num_eleme,4,3), dtype=np.float64) #各ガウスの積分
 GAUSSstress = np.zeros((num_eleme,4,3), dtype=np.float64)
 NODALstrain = np.zeros((num_eleme,4,3), dtype=np.float64) #各節点におけるひずみ
 NODALstress = np.zeros((num_eleme,4,3), dtype=np.float64)
-
+Nmat        = np.zeros((4,4), dtype=np.float64)   #行:各積分点　列:各形状関数N　に対応した行列。
 
 
 e_Umat = np.empty(8, dtype=np.float64)               #ある四角形要素の変位
@@ -872,9 +872,17 @@ for i in range(num_eleme):
 
 
 
-#nodalわからない。
-
-
+#ガウスの積分点の形状関数と、ひずみ、応力から節点を求めている。
+#ひずみ、応力の要素内の分布は同じ形状関数なの？
+for i in range(num_eleme):
+    for j in range(3): #εx,εy、τxyの3
+        
+        for k in range(len(gauss_nodes)):
+            for l in range(4): #形状関数4こ
+                Nmat[k,l] = 0.25 * (1 + polar[l,0] * gauss_nodes[k,0]) * (1 + polar[l,1] * gauss_nodes[k,1])
+                
+        NODALstrain[i,:,j] = solve(Nmat, GAUSSstrain[i,:,j])
+        NODALstress[i,:,j] = solve(Nmat, GAUSSstress[i,:,j])
 
 print('CALCULATE DISTRIBUTIONS')
 

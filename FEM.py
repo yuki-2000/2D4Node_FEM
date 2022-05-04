@@ -253,9 +253,10 @@ with open('input_matinfo.txt') as f:
                 Dmat[2,2,k] = Young1 / (1 + Poisson1) / 2
         
         
-        elif mat_type == 2: #Transeversely Isotropic Material
+        elif mat_type == 2: #Transeversely Isotropic Material　直交異方性材料、横等方性材料
             print('MATERIAL TYPE IS TRANSEVERSELY ISOTROPIC MATERIAL.')
             
+            #Lを繊維軸方向，Tを繊維軸直交方向
             if condition == 1:
                 Young1 = float(l[line_num].split('!')[0].replace('d','e')) #LL
                 line_num += 1
@@ -370,12 +371,13 @@ dNdxy     = np.zeros((2,4), dtype=np.float64) #dN/dx,dN/dyを成分に持つ行�
 e_node    = np.zeros((4,2), dtype=np.float64) #ある四角形elementを構成する4接点のxy座標　#e_pointから戻した。
 
 
-#ガウスの積分点　わからない
+#ガウスの積分点 左下から
 gauss_nodes = np.array([[-1/np.sqrt(3), -1/np.sqrt(3)],
                         [ 1/np.sqrt(3), -1/np.sqrt(3)],
                         [ 1/np.sqrt(3),  1/np.sqrt(3)],
                         [-1/np.sqrt(3),  1/np.sqrt(3)]])
 
+#自然座標での４点、左下から
 polar = np.array([[-1, -1],
                   [ 1, -1],
                   [ 1,  1],
@@ -403,6 +405,7 @@ for i in range(num_eleme):
     for j in range(len(gauss_nodes)): #各ガウスの積分点を代入した時
         for k in range(4): #各接点の4
             #pythonは0スタート
+            #Nは(ξ,η)て定義、4節点に対応するNの偏微分に、ある積分点を代入
             Hmat[0,k] = polar[k,0] * (1 + polar[k,1] * gauss_nodes[j,1]) * 0.25
             Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss_nodes[j,0]) * 0.25
         
@@ -843,10 +846,11 @@ lap_time = time.time()
 strain = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のひずみ(εx,εy,γxy)
 stress = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のの応力(σx,σy,τxy)
 
-GAUSSstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64) #各ガウスの積分点におけるひずみ。四角形では要素内で一定でない。
-GAUSSstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
-NODALstrain = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
-NODALstress = strain = np.zeros((num_eleme,4,3), dtype=np.float64)
+GAUSSstrain = np.zeros((num_eleme,4,3), dtype=np.float64) #各ガウスの積分点におけるひずみ。四角形では要素内で一定でない。
+GAUSSstress = np.zeros((num_eleme,4,3), dtype=np.float64)
+NODALstrain = np.zeros((num_eleme,4,3), dtype=np.float64) #各節点におけるひずみ
+NODALstress = np.zeros((num_eleme,4,3), dtype=np.float64)
+
 
 
 e_Umat = np.empty(8, dtype=np.float64)               #ある四角形要素の変位
@@ -861,6 +865,8 @@ for i in range(num_eleme):
         GAUSSstrain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
         GAUSSstress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
         
+        
+        #念のため残しておく。
         strain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
         stress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
 

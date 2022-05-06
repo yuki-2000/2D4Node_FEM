@@ -482,13 +482,12 @@ lap_time = time.time()
 
 #配列の初期化
 Kmat   = np.zeros((2*num_node,2*num_node), dtype=np.float64) #全体剛性マトリックス
-e_Kmat = np.zeros((8,8), dtype=np.float64)  #要素剛性マトリックス
 
-#定数になってしまうのでTをtに変更
-#BtD    = np.zeros((6,3), dtype=np.float64)  #fortranにはあったが、確保する必要なし
-#BtDB   = np.zeros((6,6), dtype=np.float64)  #fortranにはあったが、確保する必要なし
 
 for i in range(num_eleme):
+    
+    e_Kmat = np.zeros((8,8), dtype=np.float64)  #要素剛性マトリックス
+
     for j in range(len(gauss_nodes)): #各ガウスの積分点を代入した時
     
         #要素剛性マトリックスの構築 P.135 式(5.94)
@@ -514,7 +513,7 @@ for i in range(num_eleme):
             
             #[2x2]の成分ごとに組込み
             #j,lがpythonでは0スタートなので-1を消したり+2を+1にしたり
-                        #Kmat[2*(pt1-1), 2*(pt2-1)] += e_Kmat[2*j, 2*k]
+            #Kmat[2*(pt1-1), 2*(pt2-1)] += e_Kmat[2*j, 2*k]
             #Kmat[2*(pt1-1), 2*(pt2-1)+1] += e_Kmat[2*j, 2*k+1]
             #Kmat[2*(pt1-1)+1, 2*(pt2-1)] += e_Kmat[2*j+1, 2*k]
             #Kmat[2*(pt1-1)+1, 2*(pt2-1)+1] += e_Kmat[2*j+1, 2*k+1]

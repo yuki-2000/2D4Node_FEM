@@ -422,6 +422,11 @@ for i in range(num_eleme):
         
         #p220(B.25)
         det_Jacobi[i,j] = np.linalg.det(Jacobi)
+        if det_Jacobi <= 0:
+            print("error det_Jacobi<=0")
+            print("element:", i)
+            print("gauss:", j)
+            
         
         #初歩的な線形代数の逆行列　ライブラリでやるか？ 
         #p220 B.25

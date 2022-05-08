@@ -422,7 +422,7 @@ for i in range(num_eleme):
         
         #p220(B.25)
         det_Jacobi[i,j] = np.linalg.det(Jacobi)
-        if det_Jacobi <= 0:
+        if det_Jacobi[i,j] <= 0:
             print("error det_Jacobi<=0")
             print("element:", i)
             print("gauss:", j)
@@ -847,8 +847,8 @@ lap_time = time.time()
 # distribution (NUM_NODE, NUM_ELEME, eleme, Bmat, Dmat, Umat)
 
 #念のため残しておく。
-strain = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のひずみ(εx,εy,γxy)
-stress = np.zeros((num_eleme,4,3), dtype=np.float64)  #各四角形のの応力(σx,σy,τxy)
+AVEstrain = np.zeros((num_eleme,3), dtype=np.float64)  #各四角形の平均ひずみ(εx,εy,γxy)
+AVEstress = np.zeros((num_eleme,3), dtype=np.float64)  #各四角形の平均応力(σx,σy,τxy)
 
 GAUSSstrain = np.zeros((num_eleme,4,3), dtype=np.float64) #各ガウスの積分点におけるひずみ。四角形では要素内で一定でない。
 GAUSSstress = np.zeros((num_eleme,4,3), dtype=np.float64)
@@ -870,9 +870,12 @@ for i in range(num_eleme):
         GAUSSstress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
         
         
-        #念のため残しておく。
-        strain[i,j,:] = Bmat[:,:,i,j] @ e_Umat
-        stress[i,j,:] = Dmat[:,:,material[i]-1] @ GAUSSstrain[i,j,:]
+    #ガウス求積より、積分点の平均をとれば要素全体の平均となる。
+    for j in range(len(gauss_nodes)):
+        AVEstrain[i,:] += GAUSSstrain[i,j,:]
+        AVEstress[i,:] += GAUSSstress[i,j,:]
+    AVEstrain[i,:] /= 4
+    AVEstress[i,:] /= 4
 
 
 
@@ -953,7 +956,7 @@ def showMeshPlot(nodes, elements, values, title):
 showMeshPlot(nodes=node, elements=eleme-1, values=np.zeros(num_eleme), title = 'mesh')
 
 
-result_list = (('strain_x', strain[:,0,0]),('strain_y', strain[:,0,1]),('strain_xy', strain[:,0,2]),('stress_x', stress[:,0,0]),('stress_y', stress[:,0,1]),('stress_xy', stress[:,0,2]))
+result_list = (('strain_x', AVEstrain[:,0]),('strain_y', AVEstrain[:,1]),('strain_xy', AVEstrain[:,2]),('stress_x', AVEstress[:,0]),('stress_y', AVEstress[:,1]),('stress_xy', AVEstress[:,2]))
 for title, C in result_list:
 
     #接点番号は1から、pythonの行番号は0から始まるので修正

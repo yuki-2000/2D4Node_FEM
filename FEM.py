@@ -922,15 +922,15 @@ def showMeshPlot(nodes, elements, values, title):
         ax.autoscale()
         return pc
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(dpi=500)
     ax.set_aspect('equal')
 
     pc = quatplot(y,z, np.asarray(elements), values, ax=ax, 
-             edgecolor="black", cmap="rainbow")
+             edgecolor="black", cmap="rainbow",linewidths=(0.1,))
     fig.colorbar(pc, ax=ax)        
-    ax.plot(y,z, marker="o", ls="", color="black")
+    #ax.plot(y,z, marker="o", ls="", color="black")
 
-    ax.set(title=title, xlabel='Y Axis', ylabel='Z Axis')
+    ax.set(title=title, xlabel='X Axis', ylabel='Y Axis')
 
     plt.show()
     #fig.savefig(f'result_{title}.png')
@@ -945,11 +945,14 @@ def showMeshPlot(nodes, elements, values, title):
 #https://qiita.com/itotomball/items/e63039d186fa1f564513
 
 
-result_list = (('mesh', np.zeros(num_eleme)),('strain_x', strain[:,0,0]),('strain_y', strain[:,0,1]),('strain_xy', strain[:,0,2]),('stress_x', stress[:,0,0]),('stress_y', stress[:,0,1]),('stress_xy', stress[:,0,2]))
+showMeshPlot(nodes=node, elements=eleme-1, values=np.zeros(num_eleme), title = 'mesh')
+
+
+result_list = (('strain_x', strain[:,0,0]),('strain_y', strain[:,0,1]),('strain_xy', strain[:,0,2]),('stress_x', stress[:,0,0]),('stress_y', stress[:,0,1]),('stress_xy', stress[:,0,2]))
 for title, C in result_list:
 
     #接点番号は1から、pythonの行番号は0から始まるので修正
-    showMeshPlot(nodes=node, elements=eleme-1, values=strain[:,0,0], title = title)
+    showMeshPlot(nodes=disp, elements=eleme-1, values=C, title = title)
     
 
 for matrix_name in["Kmat", "K11", "K12", "K22"] :

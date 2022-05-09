@@ -874,8 +874,8 @@ for i in range(num_eleme):
     for j in range(len(gauss_nodes)):
         AVEstrain[i,:] += GAUSSstrain[i,j,:]
         AVEstress[i,:] += GAUSSstress[i,j,:]
-    AVEstrain[i,:] /= 4
-    AVEstress[i,:] /= 4
+    AVEstrain[i,:] /= len(gauss_nodes)
+    AVEstress[i,:] /= len(gauss_nodes)
 
 
 

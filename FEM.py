@@ -87,8 +87,8 @@ lap_time = time.time()
 #fortranでは単精度では1.23e4、倍精度では1.23d4とかくが、pythonはeのみ対応。よって置換
 #https://docs.python.org/ja/3/library/functions.html#float
 
-with open('input_AnalysisConditions.txt') as f:
-#with open('benchmark_input_AnalysisConditions.txt') as f:
+with open('input_AnalysisConditions.txt', encoding="utf-8") as f:
+#with open('benchmark_input_AnalysisConditions.txt', encoding="utf-8") as f:
     l = f.readlines()
     num_node  = int(l[0].split('!')[0]) #モデル節点数
     num_eleme = int(l[1].split('!')[0]) #モデル要素数
@@ -975,7 +975,7 @@ def showMeshPlot(nodes, elements, values, title):
 #可視化
 #https://qiita.com/itotomball/items/e63039d186fa1f564513
 
-
+"""
 showMeshPlot(nodes=node, elements=eleme-1, values=np.zeros(num_eleme), title = 'mesh')
 
 
@@ -997,7 +997,7 @@ for matrix_name in["Kmat", "K11", "K12", "K22"] :
     fig.tight_layout()
     plt.show()
     #fig.savefig('Kmat.png')
-
+"""
     
     
 #メモリ確認

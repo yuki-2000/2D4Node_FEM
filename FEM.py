@@ -59,12 +59,16 @@ node番号!=配列番号
 
 
 import numpy as np
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 import time
 import sys
-from scipy.sparse import coo_matrix
-from scipy.sparse.linalg import inv, spsolve
-from scipy.linalg import solve, det
+#from scipy.sparse import coo_matrix
+#from scipy.sparse.linalg import inv, spsolve
+#from scipy.linalg import solve, det
+import tensorflow as tf
+import cProfile
+print("tf.executing_eagerly()", tf.executing_eagerly())
+
 #処理時間計測
 start_time = time.time()
 lap_time = time.time()
@@ -127,6 +131,8 @@ fix_pnt   = np.empty((num_fix,2),  dtype=np.int32) #変位境界条件
 force_pnt = np.empty((num_force,2),dtype=np.int32) #力学的境界条件 #接点番号と向きの配列
 fix       = np.empty((num_fix),    dtype=np.float64) #変位境界条件の値
 force     = np.empty((num_force),  dtype=np.float64) #力学的境界条件の値
+
+
 
 
 #dを使った指数表現に対応、スペース区切りに変更
@@ -528,9 +534,9 @@ for i in range(num_eleme):
 
 #疎行列に変換
 #Kmat = coo_matrix(Kmat).tolil()
-Kmat = coo_matrix(Kmat).tocsr()
+#Kmat = coo_matrix(Kmat).tocsr()
 #Kmat = coo_matrix(Kmat).tocsc()
-
+#Kmat = tf.sparse.from_dense(Kmat)
 
 print( 'MAKE K-MATRIX')
 
@@ -750,6 +756,8 @@ lap_time = time.time()
 # solveUmat (NUM_NODE, NUM_FIX, Umat, K11, K12, F1, U1, U2, unknown_DOF)
 
 
+
+
 #U1  = np.zeros((2*num_node-num_fix), dtype=np.float64)   #変位境界条件付加後の小行列 #前に作成済み
 #fku = np.zeros((2*num_node-num_fix), dtype=np.float64)   #わからない   (F-Kd) #大文字から小文字に変更 いらない
 
@@ -771,16 +779,24 @@ lap_time = time.time()
 #http://www.turbare.net/transl/scipy-lecture-notes/advanced/scipy_sparse/solvers.html#sparse-direct-solvers
 #https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.spsolve.html#scipy.sparse.linalg.spsolve
 #sparce@ndarry=ndarray, coo_matrix(1D)は[1,n]の2次元
-K11 =  coo_matrix(K11).tocsr()
+#K11 =  coo_matrix(K11).tocsr()
 #https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.spsolve.html#scipy.sparse.linalg.spsolve
 #use_umfpack：倍精度
-U1 = spsolve(K11, F1 - K12 @ U2, use_umfpack=True)
+#U1 = spsolve(K11, F1 - K12 @ U2, use_umfpack=True)
 
+K11 = tf.constant(K11, dtype=tf.float64)
+F1 = tf.constant(F1, dtype=tf.float64)
+F1 = tf.reshape(F1 , [-1, 1])
+K12 = tf.constant(K12, dtype=tf.float64)
+U2 = tf.constant(U2, dtype=tf.float64)
+U2 = tf.reshape(U2 , [-1, 1])
+U1 = tf.linalg.solve(K11, tf.math.subtract(F1,K12 @ U2))
 
 
 #元の並びのUmatに、判明部分を代入
 #view? copy?
-Umat[unknown_DOF] = U1
+#Umat[unknown_DOF] = U1
+Umat[unknown_DOF] = tf.reshape(U1 , [-1])
 
 #output省略
 
@@ -799,12 +815,19 @@ lap_time = time.time()
 
 #K21=K12.T 対称性より
 #F2は未知成分だったが、ここで判明
-F2 = K12.T @ U1 + K22 @ U2
+#F2 = K12.T @ U1 + K22 @ U2
 
+F2 = tf.constant(F2, dtype=tf.float64)
+F2 = tf.reshape(F2 , [-1, 1])
+U1 = tf.constant(U1, dtype=tf.float64)
+U1 = tf.reshape(U1 , [-1, 1])
+K22 = tf.constant(K22, dtype=tf.float64)
+F2 = tf.math.add(tf.linalg.matmul(K12, U1, transpose_a=True, a_is_sparse=True,), tf.linalg.matmul(K22, U2, a_is_sparse=True,))
 
 #元の並びのUmatに、判明部分を代入  
 #view? copy?
-Fmat[known_DOF] = F2
+#Fmat[known_DOF] = F2
+Fmat[known_DOF] =  tf.reshape(F2 , [-1])
 
 #output省略
 
@@ -878,7 +901,7 @@ for i in range(num_eleme):
     AVEstress[i,:] /= len(gauss_nodes)
 
 
-
+"""
 #ガウスの積分点の形状関数と、ひずみ、応力から節点を求めている。
 #ひずみ、応力の要素内の分布は同じ形状関数なの？
 for i in range(num_eleme):
@@ -890,7 +913,7 @@ for i in range(num_eleme):
                 
         NODALstrain[i,:,j] = solve(Nmat, GAUSSstrain[i,:,j])
         NODALstress[i,:,j] = solve(Nmat, GAUSSstress[i,:,j])
-
+"""
 print('CALCULATE DISTRIBUTIONS')
 
 print("経過時間:", time.time() - start_time)

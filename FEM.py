@@ -65,6 +65,19 @@ import sys
 #from scipy.sparse import coo_matrix
 #from scipy.sparse.linalg import inv, spsolve
 #from scipy.linalg import solve, det
+
+"""
+https://www.tensorflow.org/install/pip?hl=ja#windows-native
+
+conda create --name tf python=3.9
+conda activate tf
+conda install -c conda-forge cudatoolkit=11.2 cudnn=8.1.0
+pip install --upgrade pip
+pip install "tensorflow<2.11" 
+
+python -c "import tensorflow as tf; print(tf.reduce_sum(tf.random.normal([1000, 1000])))"
+python -c "import tensorflow as tf; print(tf.config.list_physical_devices('GPU'))"
+"""
 import tensorflow as tf
 import cProfile
 print("tf.executing_eagerly()", tf.executing_eagerly())
@@ -87,8 +100,8 @@ lap_time = time.time()
 #fortranでは単精度では1.23e4、倍精度では1.23d4とかくが、pythonはeのみ対応。よって置換
 #https://docs.python.org/ja/3/library/functions.html#float
 
-with open('input_AnalysisConditions.txt', encoding="utf-8") as f:
-#with open('benchmark_input_AnalysisConditions.txt', encoding="utf-8") as f:
+#with open('input_AnalysisConditions.txt', encoding="utf-8") as f:
+with open('benchmark_input_AnalysisConditions.txt', encoding="utf-8") as f:
     l = f.readlines()
     num_node  = int(l[0].split('!')[0]) #モデル節点数
     num_eleme = int(l[1].split('!')[0]) #モデル要素数
@@ -136,29 +149,31 @@ force     = np.empty((num_force),  dtype=np.float64) #力学的境界条件の�
 
 
 #dを使った指数表現に対応、スペース区切りに変更
-with open('input_point.txt') as f:
-#with open('benchmark_input_point.txt') as f:
+#with open('input_point.txt') as f:
+with open('benchmark_input_point.txt') as f:
     l = f.readlines()
     for i, input_point in enumerate(l):
         node[i,0] = input_point.split()[1].replace('d','e')
         node[i,1] = input_point.split()[2].replace('d','e')
         
 #スペース区切りに変更
-with open('input_eleme.txt') as f:
-#with open('benchmark_input_eleme.txt') as f:
+#with open('input_eleme.txt') as f:
+with open('benchmark_input_eleme.txt') as f:
     l = f.readlines()
     for i, input_eleme in enumerate(l):
         eleme[i] = input_eleme.split()[1:5]
 
 #追加   
-with open('input_material.txt') as f:
+#with open('input_material.txt') as f:
+with open('benchmark_input_material.txt') as f:
     l = f.readlines()
     for i, input_material in enumerate(l):
         material[i] = input_material.split()[1]
 
       
 #行の最後に文章があるので行番号を厳密に指定        
-with open('input_fixednodes.txt') as f:
+#with open('input_fixednodes.txt') as f:
+with open('benchmark_input_fixednodes.txt') as f:
     l = f.readlines()
     for i in range(num_fix):
         fix_pnt[i] = l[i].split()[1:3]
@@ -536,7 +551,7 @@ for i in range(num_eleme):
 #Kmat = coo_matrix(Kmat).tolil()
 #Kmat = coo_matrix(Kmat).tocsr()
 #Kmat = coo_matrix(Kmat).tocsc()
-#Kmat = tf.sparse.from_dense(Kmat)
+Kmat = tf.sparse.from_dense(Kmat)
 
 print( 'MAKE K-MATRIX')
 
@@ -668,18 +683,27 @@ unknown_DOF = np.delete(unknown_DOF, known_DOF)
 
 #zerosで作ったものを上書きしている？
 #ファンシーインデックスはビュー（参照）ではなくコピーを返す。
-K11 = Kmat[unknown_DOF, :]
-K11 = K11[:, unknown_DOF]
-K12 = Kmat[unknown_DOF, :]
-K12 = K12[:, known_DOF]
+#K11 = Kmat[unknown_DOF, :]
+#K11 = K11[:, unknown_DOF]
+#K12 = Kmat[unknown_DOF, :]
+#K12 = K12[:, known_DOF]
+
+K11 = tf.gather(tf.sparse.to_dense(Kmat), unknown_DOF, axis=0)
+K11 = tf.gather(K11, unknown_DOF, axis=1)
+K11 = tf.sparse.from_dense(K11)
+K12 = tf.gather(tf.sparse.to_dense(Kmat), unknown_DOF, axis=0)
+K12 = tf.gather(K12, known_DOF, axis=1)
+
 
 #ファインシーインデックスはviewでなくcopyを返す        
 F1 = Fmat[unknown_DOF]
 U1 = Umat[unknown_DOF] #未知成分
 
 
-K22 = Kmat[known_DOF, :]
-K22 = K22[:, known_DOF]
+#K22 = Kmat[known_DOF, :]
+#K22 = K22[:, known_DOF]
+K22 = tf.gather(tf.sparse.to_dense(Kmat), known_DOF, axis=0)
+K22 = tf.gather(K22, known_DOF, axis=1)
 
 #ファインシーインデックスはviewでなくcopyを返す              
 F2 = Fmat[known_DOF] #未知成分
@@ -784,13 +808,13 @@ lap_time = time.time()
 #use_umfpack：倍精度
 #U1 = spsolve(K11, F1 - K12 @ U2, use_umfpack=True)
 
-K11 = tf.constant(K11, dtype=tf.float64)
+#K11 = tf.constant(K11, dtype=tf.float64)
 F1 = tf.constant(F1, dtype=tf.float64)
 F1 = tf.reshape(F1 , [-1, 1])
 K12 = tf.constant(K12, dtype=tf.float64)
 U2 = tf.constant(U2, dtype=tf.float64)
 U2 = tf.reshape(U2 , [-1, 1])
-U1 = tf.linalg.solve(K11, tf.math.subtract(F1,K12 @ U2))
+U1 = tf.linalg.solve(tf.sparse.to_dense(K11), tf.math.subtract(F1,K12 @ U2))
 
 
 #元の並びのUmatに、判明部分を代入

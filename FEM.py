@@ -557,7 +557,7 @@ for i in range(num_force):
     
     if (force_pnt[i,1] != 1 and force_pnt[i,1] != 2):
         print('INPUT DATA "input_forcednodes.txt" IS NOT APPROPREATE.')
-        print('load direction is now',force_pnt[i,2], ', not 1(x) or 2(y)' )
+        print('load direction is now',force_pnt[i,1], ', not 1(x) or 2(y)' )
         break
  
 
@@ -592,7 +592,7 @@ for i in range(num_fix):
     
     if (fix_pnt[i,1] != 1 and fix_pnt[i,1] != 2):
         print('IINPUT DATA "input_fixednodes.txt" IS NOT APPROPREATE.')
-        print('Fixed direction is now', fix_pnt[i,2], ', not 1(x) or 2(y)' )
+        print('Fixed direction is now', fix_pnt[i,1], ', not 1(x) or 2(y)' )
         break
 
 
@@ -874,8 +874,8 @@ for i in range(num_eleme):
     for j in range(len(gauss_nodes)):
         AVEstrain[i,:] += GAUSSstrain[i,j,:]
         AVEstress[i,:] += GAUSSstress[i,j,:]
-    AVEstrain[i,:] /= 4
-    AVEstress[i,:] /= 4
+    AVEstrain[i,:] /= len(gauss_nodes)
+    AVEstress[i,:] /= len(gauss_nodes)
 
 
 

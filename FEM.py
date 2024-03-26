@@ -53,7 +53,6 @@ floatで定義した配列にはstrを代入しても数値に代わるが、た
 
 node番号!=配列番号
 
-疑問点：境界以外の内部については、すべて荷重0かもしくはあたえられているという認識でいいのか？
 
 """
 
@@ -192,8 +191,7 @@ lap_time = time.time()
 #配列の初期化
 Dmat = np.zeros((3,3,num_material),dtype=np.float64) #弾性剛性マトリックス
 
-#最悪　めちゃくちゃわかりにくい
-#ちゃんとしたデータセット形式のinput作れ
+
 
 #readで読んでいるから
 line_num = 0
@@ -410,7 +408,7 @@ for i in range(num_eleme):
             Hmat[1,k] = polar[k,1] * (1 + polar[k,0] * gauss_nodes[j,0]) * 0.25
         
         
-        #可読性最悪　ではなく、ただの行列積だった。
+        #ただの行列積だった。
         #for k in range(2):
             #for l in range(2):
                 #for m in range(4):
